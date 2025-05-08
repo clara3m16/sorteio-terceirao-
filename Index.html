@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteio do Terceirão</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+    }
+    .menu {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+    }
+    .menu-opcoes {
+      display: none;
+      position: absolute;
+      right: 20px;
+      top: 60px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    .menu-opcoes a {
+      display: block;
+      text-decoration: none;
+      color: #333;
+      margin: 5px 0;
+    }
+    #cadastroVendedor, #cadastroBanco, #dadosVendedores {
+      display: none;
+      max-width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #2980b9;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background: #3498db;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sorteio do Terceirão</h1>
+  </header>
+  <div class="menu" onclick="toggleMenu()">&#x22EE;</div>
+  <div class="menu-opcoes" id="menu">
+    <a href="#" onclick="mostrarLogin()">Login ADM/Vendedor</a>
+    <a href="#" onclick="mostrarCadastroVendedor()">Cadastro Vendedor</a>
+    <a href="#" onclick="mostrarCadastroBanco()">Cadastro Banco (ADM1)</a>
+    <a href="#" onclick="mostrarDadosVendedores()">Lista de Vendedores</a>
+  </div>
+  
+  <!-- Formulário de login -->
+  <form id="loginForm" style="display:none;">
+    <h3>Login</h3>
+    <input type="text" id="loginUsuario" placeholder="Nome de usuário" required>
+    <input type="password" id="loginSenha" placeholder="Senha" required>
+    <button type="button" onclick="loginUsuario()">Entrar</button>
+  </form>
+
+  <!-- Outros formulários de cadastro -->
+  <form id="cadastroVendedor" style="display:none;">
+    <h3>Cadastro de Vendedor</h3>
+    <input type="text" id="nomeCompleto" placeholder="Nome completo" required>
+    <input type="tel" id="telefone" placeholder="Número de telefone" required>
+    <input type="text" id="chavePix" placeholder="Chave Pix" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <select id="tipoConta" onchange="toggleSerie()">
+      <option value="">Tipo de conta</option>
+      <option value="aluno">Aluno</option>
+      <option value="professor">Professor</option>
+    </select>
+    <input type="text" id="serie" placeholder="Série (obrigatório para alunos)" style="display:none">
+    <button type="button" onclick="salvarCadastroVendedor()">Salvar Cadastro</button>
+  </form>
+
+  <form id="cadastroBanco" style="display:none;">
+    <h3>Cadastro do Banco (ADM1)</h3>
+    <input type="text" id="banco" placeholder="Nome do banco" required>
+    <input type="text" id="agencia" placeholder="Agência" required>
+    <input type="text" id="conta" placeholder="Conta" required>
+    <input type="text" id="pix" placeholder="Chave Pix para recebimento" required>
+    <button type="button" onclick="salvarBanco()">Salvar Dados Bancários</button>
+  </form>
+
+  <div id="dadosVendedores" style="display:none;">
+    <h3>Vendedores Cadastrados</h3>
+    <ul id="listaVendedores"></ul>
+  </div>
+
+  <script>
+    const admins = {
+      Edilma_vicediretora: { senha: "didinhaeoterceirao", tipo: "adm1" },
+      Clara_3m16: { senha: "souza346santos", tipo: "adm" },
+      Ariel_3m18: { senha: "brancosazedos", tipo: "adm" }
+    };
+
+    let usuarioLogado = null;
+    let tipoUsuario = null;
+
+    function toggleMenu() {
+      const menu = document.getElementById("menu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
+    function mostrarLogin() {
+      esconderTudo();
+      document.getElementById("loginForm").style.display = "block";
+    }
+
+    function mostrarCadastroVendedor() {
+      esconderTudo();
+      document.getElementById("cadastroVendedor").style.display = "block";
+    }
+
+    function mostrarCadastroBanco() {
+      if (usuarioLogado && tipoUsuario === "adm1") {
+        esconderTudo();
+        document.getElementById("cadastroBanco").style.display = "block";
+      } else {
+        alert("Acesso restrito ao ADM1.");
+      }
+    }
+
+    function mostrarDadosVendedores() {
+      if (tipoUsuario === "adm" || tipoUsuario === "adm1") {
+        esconderTudo();
+        document.getElementById("dadosVendedores").style.display = "block";
+      } else {
+        alert("Somente ADM pode ver os dados dos vendedores.");
+      }
+    }
+
+    function toggleSerie() {
+      const tipo = document.getElementById("tipoConta").value;
+      document.getElementById("serie").style.display = tipo === "aluno" ? "block" : "none";
+    }
+
+    function loginUsuario() {
+      const usuario = document.getElementById("loginUsuario").value;
+      const senha = document.getElementById("loginSenha").value;
+
+      if (admins[usuario] && admins[usuario].senha === senha) {
+        usuarioLogado = usuario;
+        tipoUsuario = admins[usuario].tipo;
+        alert("Login ADM bem-sucedido. Por favor, preencha o cadastro de vendedor.");
+        mostrarCadastroVendedor();
+      } else {
+        alert("Usuário ou senha incorretos.");
+      }
+    }
+
+    function salvarCadastroVendedor() {
+      // Função para salvar o cadastro do vendedor
+    }
+
+    function salvarBanco() {
+      // Função para salvar os dados bancários
+    }
+
+    function esconderTudo() {
+      document.querySelectorAll("form, #dadosVendedores").forEach(e => e.style.display = "none");
+    }
+  </script>
+</body>
+  </html><!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteio do Terceirão</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+    }
+    .menu {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+    }
+    .menu-opcoes {
+      display: none;
+      position: absolute;
+      right: 20px;
+      top: 60px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    .menu-opcoes a {
+      display: block;
+      text-decoration: none;
+      color: #333;
+      margin: 5px 0;
+    }
+    #cadastroVendedor, #cadastroBanco, #dadosVendedores {
+      display: none;
+      max-width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #2980b9;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background: #3498db;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sorteio do Terceirão</h1>
+  </header>
+  <div class="menu" onclick="toggleMenu()">&#x22EE;</div>
+  <div class="menu-opcoes" id="menu">
+    <a href="#" onclick="mostrarLogin()">Login ADM/Vendedor</a>
+    <a href="#" onclick="mostrarCadastroVendedor()">Cadastro Vendedor</a>
+    <a href="#" onclick="mostrarCadastroBanco()">Cadastro Banco (ADM1)</a>
+    <a href="#" onclick="mostrarDadosVendedores()">Lista de Vendedores</a>
+  </div>
+  
+  <!-- Formulário de login -->
+  <form id="loginForm" style="display:none;">
+    <h3>Login</h3>
+    <input type="text" id="loginUsuario" placeholder="Nome de usuário" required>
+    <input type="password" id="loginSenha" placeholder="Senha" required>
+    <button type="button" onclick="loginUsuario()">Entrar</button>
+  </form>
+
+  <!-- Outros formulários de cadastro -->
+  <form id="cadastroVendedor" style="display:none;">
+    <h3>Cadastro de Vendedor</h3>
+    <input type="text" id="nomeCompleto" placeholder="Nome completo" required>
+    <input type="tel" id="telefone" placeholder="Número de telefone" required>
+    <input type="text" id="chavePix" placeholder="Chave Pix" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <select id="tipoConta" onchange="toggleSerie()">
+      <option value="">Tipo de conta</option>
+      <option value="aluno">Aluno</option>
+      <option value="professor">Professor</option>
+    </select>
+    <input type="text" id="serie" placeholder="Série (obrigatório para alunos)" style="display:none">
+    <button type="button" onclick="salvarCadastroVendedor()">Salvar Cadastro</button>
+  </form>
+
+  <form id="cadastroBanco" style="display:none;">
+    <h3>Cadastro do Banco (ADM1)</h3>
+    <input type="text" id="banco" placeholder="Nome do banco" required>
+    <input type="text" id="agencia" placeholder="Agência" required>
+    <input type="text" id="conta" placeholder="Conta" required>
+    <input type="text" id="pix" placeholder="Chave Pix para recebimento" required>
+    <button type="button" onclick="salvarBanco()">Salvar Dados Bancários</button>
+  </form>
+
+  <div id="dadosVendedores" style="display:none;">
+    <h3>Vendedores Cadastrados</h3>
+    <ul id="listaVendedores"></ul>
+  </div>
+
+  <script>
+    const admins = {
+      Edilma_vicediretora: { senha: "didinhaeoterceirao", tipo: "adm1" },
+      Clara_3m16: { senha: "souza346santos", tipo: "adm" },
+      Ariel_3m18: { senha: "brancosazedos", tipo: "adm" }
+    };
+
+    let usuarioLogado = null;
+    let tipoUsuario = null;
+
+    function toggleMenu() {
+      const menu = document.getElementById("menu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
+    function mostrarLogin() {
+      esconderTudo();
+      document.getElementById("loginForm").style.display = "block";
+    }
+
+    function mostrarCadastroVendedor() {
+      esconderTudo();
+      document.getElementById("cadastroVendedor").style.display = "block";
+    }
+
+    function mostrarCadastroBanco() {
+      if (usuarioLogado && tipoUsuario === "adm1") {
+        esconderTudo();
+        document.getElementById("cadastroBanco").style.display = "block";
+      } else {
+        alert("Acesso restrito ao ADM1.");
+      }
+    }
+
+    function mostrarDadosVendedores() {
+      if (tipoUsuario === "adm" || tipoUsuario === "adm1") {
+        esconderTudo();
+        document.getElementById("dadosVendedores").style.display = "block";
+      } else {
+        alert("Somente ADM pode ver os dados dos vendedores.");
+      }
+    }
+
+    function toggleSerie() {
+      const tipo = document.getElementById("tipoConta").value;
+      document.getElementById("serie").style.display = tipo === "aluno" ? "block" : "none";
+    }
+
+    function loginUsuario() {
+      const usuario = document.getElementById("loginUsuario").value;
+      const senha = document.getElementById("loginSenha").value;
+
+      if (admins[usuario] && admins[usuario].senha === senha) {
+        usuarioLogado = usuario;
+        tipoUsuario = admins[usuario].tipo;
+        alert("Login ADM bem-sucedido. Por favor, preencha o cadastro de vendedor.");
+        mostrarCadastroVendedor();
+      } else {
+        alert("Usuário ou senha incorretos.");
+      }
+    }
+
+    function salvarCadastroVendedor() {
+      // Função para salvar o cadastro do vendedor
+    }
+
+    function salvarBanco() {
+      // Função para salvar os dados bancários
+    }
+
+    function esconderTudo() {
+      document.querySelectorAll("form, #dadosVendedores").forEach(e => e.style.display = "none");
+    }
+  </script>
+</body>
+</html>
